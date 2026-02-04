@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: tg-fitness-bot
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m app.bot
+    envVars:
+      - key: TZ
+        value: Europe/Moscow
+    pythonVersion: 3.11.9

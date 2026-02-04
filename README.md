@@ -98,6 +98,10 @@ DB_URL=postgresql://user:pass@host:5432/dbname
 
 SQLite автоматически используется, если `DB_URL` не задан.
 
+## Render
+
+Если сборка падает на Python 3.13, в репозитории есть `render.yaml` с `pythonVersion: 3.11.9`.
+
 ## Google Sheets
 
 В `.env` укажи:
