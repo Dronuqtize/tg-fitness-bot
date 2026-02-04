@@ -1394,7 +1394,7 @@ def _build_weekly_pdf(conn, user_id: int, cfg) -> str:
             status = "rest"
         statuses[d] = status
 
-    pdf_path = temp_pdf_path(\"weekly_\")
+    pdf_path = temp_pdf_path("weekly_")
     generate_weekly_pdf(
         pdf_path,
         title=f\"Отчет за неделю ({today_date.isoformat()})\",
