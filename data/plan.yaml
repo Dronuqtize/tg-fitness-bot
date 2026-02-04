@@ -1,0 +1,103 @@
+cycle_order:
+  - chest_shoulders
+  - legs_back
+  - arms_core
+macros:
+  train:
+    kcal: 3000
+    protein: 200
+    fat: 70
+    carbs: 400
+  rest:
+    kcal: 2500
+    protein: 250
+    fat: 70
+    carbs: 200
+workouts:
+  chest_shoulders:
+    title: "Грудь и плечи"
+    easy:
+      - name: "Жим гантелей лёжа"
+        sets: 3
+        reps: "12-15"
+        weight: "по ощущению"
+      - name: "Разведение гантелей лёжа"
+        sets: 3
+        reps: "12-15"
+        weight: "легко"
+    medium:
+      - name: "Жим штанги лёжа"
+        sets: 4
+        reps: "8-10"
+        weight: "рабочий"
+      - name: "Жим гантелей сидя"
+        sets: 3
+        reps: "10-12"
+        weight: "рабочий"
+    hard:
+      - name: "Жим штанги лёжа"
+        sets: 5
+        reps: "5-8"
+        weight: "тяжело"
+      - name: "Жим штанги стоя"
+        sets: 4
+        reps: "6-8"
+        weight: "тяжело"
+  legs_back:
+    title: "Ноги и спина"
+    easy:
+      - name: "Присед без веса"
+        sets: 3
+        reps: "15-20"
+        weight: "" 
+      - name: "Тяга резинки"
+        sets: 3
+        reps: "12-15"
+        weight: "" 
+    medium:
+      - name: "Присед"
+        sets: 4
+        reps: "8-10"
+        weight: "рабочий"
+      - name: "Тяга штанги в наклоне"
+        sets: 4
+        reps: "8-10"
+        weight: "рабочий"
+    hard:
+      - name: "Присед"
+        sets: 5
+        reps: "5-8"
+        weight: "тяжело"
+      - name: "Становая тяга"
+        sets: 4
+        reps: "5-6"
+        weight: "тяжело"
+  arms_core:
+    title: "Руки и кор"
+    easy:
+      - name: "Подъем гантелей на бицепс"
+        sets: 3
+        reps: "12-15"
+        weight: "легко"
+      - name: "Планка"
+        sets: 3
+        reps: "30-45 сек"
+        weight: "" 
+    medium:
+      - name: "Подъем штанги на бицепс"
+        sets: 4
+        reps: "8-10"
+        weight: "рабочий"
+      - name: "Французский жим"
+        sets: 3
+        reps: "10-12"
+        weight: "рабочий"
+    hard:
+      - name: "Подъем штанги на бицепс"
+        sets: 5
+        reps: "6-8"
+        weight: "тяжело"
+      - name: "Отжимания на брусьях"
+        sets: 4
+        reps: "6-10"
+        weight: "тяжело"
