@@ -8,4 +8,3 @@ services:
     envVars:
       - key: TZ
         value: Europe/Moscow
-    pythonVersion: 3.11.9
