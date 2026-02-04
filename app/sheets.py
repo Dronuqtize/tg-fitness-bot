@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import csv
 import io
 from dataclasses import dataclass
 from typing import Any
 
-import pandas as pd
 import requests
 import yaml
 
@@ -21,30 +21,34 @@ def _csv_url(sheet_id: str, gid: str) -> str:
     return f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
 
 
-def _fetch_csv(url: str) -> pd.DataFrame:
+def _fetch_csv_rows(url: str) -> list[dict[str, str]]:
     resp = requests.get(url, timeout=20)
     resp.raise_for_status()
-    return pd.read_csv(io.StringIO(resp.text))
+    buf = io.StringIO(resp.text)
+    reader = csv.DictReader(buf)
+    return [dict(row) for row in reader]
+
+
+def _clean_value(value: Any) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
 
 
 def sync_plan_from_sheets(cfg: SheetConfig) -> dict[str, Any]:
-    plan_df = _fetch_csv(_csv_url(cfg.sheet_id, cfg.gid_plan))
-    macros_df = _fetch_csv(_csv_url(cfg.sheet_id, cfg.gid_macros))
-    cycle_df = _fetch_csv(_csv_url(cfg.sheet_id, cfg.gid_cycle))
-
-    plan_df = plan_df.fillna("")
-    macros_df = macros_df.fillna("")
-    cycle_df = cycle_df.fillna("")
+    plan_rows = _fetch_csv_rows(_csv_url(cfg.sheet_id, cfg.gid_plan))
+    macros_rows = _fetch_csv_rows(_csv_url(cfg.sheet_id, cfg.gid_macros))
+    cycle_rows = _fetch_csv_rows(_csv_url(cfg.sheet_id, cfg.gid_cycle))
 
     workouts: dict[str, Any] = {}
-    for _, row in plan_df.iterrows():
-        workout_key = str(row.get("workout_key", "")).strip()
-        title = str(row.get("title", "")).strip()
-        level = str(row.get("level", "")).strip().lower()
-        name = str(row.get("name", "")).strip()
-        sets = row.get("sets", "")
-        reps = row.get("reps", "")
-        weight = row.get("weight", "")
+    for row in plan_rows:
+        workout_key = _clean_value(row.get("workout_key"))
+        title = _clean_value(row.get("title"))
+        level = _clean_value(row.get("level")).lower()
+        name = _clean_value(row.get("name"))
+        sets = _clean_value(row.get("sets"))
+        reps = _clean_value(row.get("reps"))
+        weight = _clean_value(row.get("weight"))
 
         if not workout_key or not level or not name:
             continue
@@ -55,27 +59,27 @@ def sync_plan_from_sheets(cfg: SheetConfig) -> dict[str, Any]:
         workouts[workout_key].setdefault(level, []).append(
             {
                 "name": name,
-                "sets": int(sets) if str(sets).isdigit() else str(sets),
-                "reps": str(reps),
-                "weight": str(weight),
+                "sets": int(sets) if sets.isdigit() else sets,
+                "reps": reps,
+                "weight": weight,
             }
         )
 
     macros: dict[str, Any] = {"train": {}, "rest": {}}
-    for _, row in macros_df.iterrows():
-        day_type = str(row.get("day_type", "")).strip().lower()
+    for row in macros_rows:
+        day_type = _clean_value(row.get("day_type")).lower()
         if day_type not in ("train", "rest"):
             continue
         macros[day_type] = {
-            "kcal": int(row.get("kcal", 0) or 0),
-            "protein": int(row.get("protein", 0) or 0),
-            "fat": int(row.get("fat", 0) or 0),
-            "carbs": int(row.get("carbs", 0) or 0),
+            "kcal": int(_clean_value(row.get("kcal")) or 0),
+            "protein": int(_clean_value(row.get("protein")) or 0),
+            "fat": int(_clean_value(row.get("fat")) or 0),
+            "carbs": int(_clean_value(row.get("carbs")) or 0),
         }
 
     cycle_order: list[str] = []
-    for _, row in cycle_df.iterrows():
-        key = str(row.get("workout_key", "")).strip()
+    for row in cycle_rows:
+        key = _clean_value(row.get("workout_key"))
         if key:
             cycle_order.append(key)
 
