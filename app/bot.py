@@ -1142,7 +1142,7 @@ async def attendance(message: Message) -> None:
 
     cur = conn.execute(
         "SELECT date, status, day_type FROM calendar_days WHERE user_id=? AND date LIKE ?",
-        (user_id, f\"{year:04d}-{month:02d}%\"),
+        (user_id, f"{year:04d}-{month:02d}%"),
     )
     statuses = {}
     for row in cur.fetchall():
@@ -1384,7 +1384,7 @@ def _build_weekly_pdf(conn, user_id: int, cfg) -> str:
     year, month = today_date.year, today_date.month
     cur = conn.execute(
         "SELECT date, status, day_type FROM calendar_days WHERE user_id=? AND date LIKE ?",
-        (user_id, f\"{year:04d}-{month:02d}%\"),
+        (user_id, f"{year:04d}-{month:02d}%"),
     )
     statuses = {}
     for row in cur.fetchall():
