@@ -33,7 +33,8 @@ def load_config() -> Config:
 
     db_dsn = os.getenv("DB_URL") or os.getenv("DATABASE_URL")
     if not db_dsn:
-        db_dsn = str(BASE_DIR / "data" / "bot.db")
+        # Fallback for platforms without persistent disk (e.g., Render free)
+        db_dsn = "/tmp/bot.db"
 
     plan_path = Path(os.getenv("PLAN_PATH", str(BASE_DIR / "data" / "plan.yaml"))).resolve()
     timezone = os.getenv("TZ", "Europe/Moscow")
