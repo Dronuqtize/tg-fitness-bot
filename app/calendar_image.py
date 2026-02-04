@@ -109,6 +109,6 @@ def render_attendance_table(year: int, month: int, statuses: Dict[int, str]) -> 
     legend = "Легенда: ✔ тренировка выполнена, ✘ пропуск, R отдых, · план"
     draw.text((padding, legend_y), legend, fill=(60, 60, 60), font=font)
 
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=\".png\")
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
     img.save(tmp.name)
     return Path(tmp.name)
