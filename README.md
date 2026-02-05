@@ -154,11 +154,11 @@ ADMIN_IDS=123456789
 
 ## Mini App (GitHub Pages)
 
-В репозитории есть папка `webapp/`. Чтобы опубликовать:
+В репозитории есть папка `docs/`. Чтобы опубликовать:
 
 1. GitHub → Repo → Settings → Pages
 2. Source: `Deploy from a branch`
-3. Branch: `main` и папка `/webapp`
+3. Branch: `main` и папка `/docs`
 4. Сохрани — получишь URL вида:
    `https://YOUR_GITHUB_USERNAME.github.io/tg-fitness-bot/`
 
