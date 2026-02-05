@@ -74,7 +74,7 @@ def init_db(conn: DBConn) -> None:
             user_id INTEGER PRIMARY KEY,
             start_date TEXT,
             cycle_index INTEGER DEFAULT 0,
-            ai_enabled INTEGER DEFAULT 1,
+            ai_enabled INTEGER DEFAULT 0,
             reminders_json TEXT DEFAULT '{}',
             created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,

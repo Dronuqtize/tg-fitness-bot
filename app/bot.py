@@ -76,7 +76,6 @@ REMINDER_TYPES = {
     "motivation": "Мотивация: держим курс на цель.",
     "sleep": "Напоминание: сон и восстановление сегодня важны.",
     "workout": "Пора тренироваться. Проверь /today.",
-    "ai": "ИИ‑совет дня готов.",
 }
 
 REPORT_DEFAULTS = {
@@ -262,14 +261,15 @@ def _day_keyboard(day: DayPlan) -> InlineKeyboardBuilder:
         kb.button(text="Сложная", callback_data="level:hard")
         kb.button(text="ДОБАВИТЬ ПРОГРЕССИЮ", callback_data="progression")
         kb.button(text="ЗАВЕРШИЛ ТРЕНИРОВКУ", callback_data="done:train")
+        kb.button(text="Пропустил день", callback_data="skip:today")
         kb.button(text="Добавить прогресс", callback_data="progress:add")
         kb.button(text="Комментарий", callback_data="comment:today")
     else:
         kb.button(text="ОТДЫХАЛ", callback_data="done:rest")
+        kb.button(text="Пропустил день", callback_data="skip:today")
         kb.button(text="Добавить прогресс", callback_data="progress:add")
         kb.button(text="Комментарий", callback_data="comment:today")
     kb.button(text="Календарь", callback_data="calendar")
-    kb.button(text="Совет дня", callback_data="advice")
     kb.button(text="Mini App", callback_data="miniapp")
     kb.button(text="Меню", callback_data="menu:main")
     kb.adjust(2, 2, 2, 2)
@@ -683,6 +683,28 @@ async def finish_day(call: CallbackQuery, state: FSMContext) -> None:
     kb.adjust(1, 1)
     await call.message.answer("Короткий комментарий по дню?", reply_markup=kb.as_markup())
     await state.set_state(CommentState.waiting)
+    await call.answer()
+
+
+@router.callback_query(F.data == "skip:today")
+async def skip_today(call: CallbackQuery) -> None:
+    cfg = load_config()
+    conn = get_conn(cfg.db_dsn)
+    init_db(conn)
+    user_id = get_or_create_user(
+        conn,
+        call.from_user.id,
+        call.from_user.full_name,
+        cfg.timezone,
+        chat_id=call.message.chat.id if call.message else None,
+    )
+    today_date = _get_today(cfg.timezone)
+    conn.execute(
+        "UPDATE calendar_days SET status='skipped', updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND date=?",
+        (user_id, today_date.isoformat()),
+    )
+    conn.commit()
+    await call.message.answer("Отметил как пропуск.", reply_markup=_main_menu_kb().as_markup())
     await call.answer()
 
 
@@ -1685,7 +1707,6 @@ async def admin_menu(message: Message) -> None:
         return
     kb = InlineKeyboardBuilder()
     kb.button(text="Синхронизировать план", callback_data="admin:syncplan")
-    kb.button(text="AI вкл/выкл", callback_data="admin:ai_toggle")
     kb.button(text="Ежедневный отчет вкл/выкл", callback_data="admin:daily_toggle")
     kb.button(text="Weekly PDF вкл/выкл", callback_data="admin:weekly_toggle")
     kb.button(text="Тест: ежедневный отчет", callback_data="admin:test_daily")
@@ -1730,13 +1751,6 @@ async def admin_action(call: CallbackQuery) -> None:
             await call.message.answer("План загружен. Применить: /syncplan apply")
         except Exception as exc:
             await call.message.answer(f"Ошибка синхронизации: {exc}")
-        await call.answer()
-        return
-
-    if action == "ai_toggle":
-        new_value = 0 if settings.get("ai_enabled", 1) else 1
-        update_settings(conn, user_id, ai_enabled=new_value)
-        await call.message.answer(f"ИИ‑советы {'включены' if new_value else 'выключены'}.")
         await call.answer()
         return
 
@@ -1795,7 +1809,7 @@ async def menu_action(call: CallbackQuery, state: FSMContext) -> None:
     elif action == "chart":
         await chart(call.message)
     elif action == "advice":
-        await advice(call.message)
+        await call.message.answer("ИИ‑советы отключены.", reply_markup=_main_menu_kb().as_markup())
     elif action == "pdf":
         await pdf_report(call.message)
     await call.answer()
@@ -1819,7 +1833,6 @@ def _main_menu_kb() -> InlineKeyboardBuilder:
     kb.button(text="Календарь", callback_data="menu:calendar")
     kb.button(text="Табель", callback_data="menu:attendance")
     kb.button(text="График", callback_data="menu:chart")
-    kb.button(text="Совет", callback_data="menu:advice")
     kb.button(text="PDF отчет", callback_data="menu:pdf")
     kb.button(text="Mini App", callback_data="miniapp")
     kb.button(text="Добавить прогресс", callback_data="progress:add")

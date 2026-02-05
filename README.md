@@ -31,8 +31,7 @@ python -m app.bot
 - `/calendar` — календарь месяца
 - `/attendance` — табель посещений
 - `/chart` — график прогресса
-- `/advice` — ИИ‑совет по данным
-- `/ai on|off` — включить/выключить советы
+- `/advice` — сейчас отключено
 - `/reminder` — напоминания (list/set/off)
 - `/medlog` — записать лог уколов (без рекомендаций)
 - `/startdate` — задать стартовую дату цикла
@@ -54,7 +53,6 @@ python -m app.bot
 ```bash
 /reminder set water 10:00
 /reminder set motivation 12:00
-/reminder set ai 21:00
 /reminder off water
 ```
 
