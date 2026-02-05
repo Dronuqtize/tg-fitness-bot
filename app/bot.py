@@ -9,6 +9,7 @@ from typing import Any
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, CallbackQuery, FSInputFile
+from aiogram.types import WebAppInfo
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
@@ -261,6 +262,7 @@ def _day_keyboard(day: DayPlan) -> InlineKeyboardBuilder:
         kb.button(text="ОТДЫХАЛ", callback_data="done:rest")
     kb.button(text="Календарь", callback_data="calendar")
     kb.button(text="Совет дня", callback_data="advice")
+    kb.button(text="Mini App", callback_data="miniapp")
     kb.adjust(2, 2, 1)
     return kb
 
@@ -493,8 +495,8 @@ async def start(message: Message) -> None:
         update_settings(conn, user_id, start_date=None)
     await message.answer(
         "Привет! Я готов вести твой календарь тренировок, КБЖУ и прогресс.\n"
-        "Команды: /today, /progress, /calendar, /attendance, /chart, /advice, /medlog, /ai, /reminder, "
-        "/startdate, /stats, /autoprog, /syncplan, /dailyreport, /weeklypdf, /pdf"
+        "Выбери действие ниже или используй команды.",
+        reply_markup=_main_menu_kb().as_markup(),
     )
 
 
@@ -1613,6 +1615,55 @@ async def admin_action(call: CallbackQuery) -> None:
         return
 
     await call.answer("Неизвестная команда", show_alert=True)
+
+
+@router.callback_query(F.data.startswith("menu:"))
+async def menu_action(call: CallbackQuery, state: FSMContext) -> None:
+    action = call.data.split(":", 1)[1]
+    if not call.message:
+        await call.answer()
+        return
+
+    if action == "today":
+        await today(call.message)
+    elif action == "progress":
+        await progress(call.message, state)
+    elif action == "calendar":
+        await calendar_cmd(call.message)
+    elif action == "attendance":
+        await attendance(call.message)
+    elif action == "chart":
+        await chart(call.message)
+    elif action == "advice":
+        await advice(call.message)
+    elif action == "pdf":
+        await pdf_report(call.message)
+    await call.answer()
+
+
+@router.callback_query(F.data == "miniapp")
+async def open_miniapp(call: CallbackQuery) -> None:
+    cfg = load_config()
+    url = cfg.miniapp_url or "https://YOUR_GITHUB_USERNAME.github.io/tg-fitness-bot/"
+    if call.message:
+        kb = InlineKeyboardBuilder()
+        kb.button(text="Открыть Mini App", web_app=WebAppInfo(url=url))
+        await call.message.answer("Mini App:", reply_markup=kb.as_markup())
+    await call.answer()
+
+
+def _main_menu_kb() -> InlineKeyboardBuilder:
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Сегодня", callback_data="menu:today")
+    kb.button(text="Прогресс", callback_data="menu:progress")
+    kb.button(text="Календарь", callback_data="menu:calendar")
+    kb.button(text="Табель", callback_data="menu:attendance")
+    kb.button(text="График", callback_data="menu:chart")
+    kb.button(text="Совет", callback_data="menu:advice")
+    kb.button(text="PDF отчет", callback_data="menu:pdf")
+    kb.button(text="Mini App", callback_data="miniapp")
+    kb.adjust(2, 2, 2, 2)
+    return kb
 
 async def main() -> None:
     cfg = load_config()

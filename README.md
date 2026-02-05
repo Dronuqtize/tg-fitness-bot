@@ -43,6 +43,7 @@ python -m app.bot
 - `/weeklypdf` — еженедельный PDF (вкл/выкл/день/время)
 - `/pdf` — PDF отчет по кнопке
 - `/admin` — админ‑панель
+ - inline меню — кнопки для всех ключевых функций
 
 ## Напоминания
 
@@ -150,3 +151,18 @@ ADMIN_IDS=123456789
 
 Добавь в `.env` список `ADMIN_IDS` (id Telegram через пробел или запятую).
 Команда `/admin` откроет панель: синхронизация плана, переключение ИИ и отчетов.
+
+## Mini App (GitHub Pages)
+
+В репозитории есть папка `webapp/`. Чтобы опубликовать:
+
+1. GitHub → Repo → Settings → Pages
+2. Source: `Deploy from a branch`
+3. Branch: `main` и папка `/webapp`
+4. Сохрани — получишь URL вида:
+   `https://YOUR_GITHUB_USERNAME.github.io/tg-fitness-bot/`
+
+Добавь URL в `.env`:
+```
+MINIAPP_URL=https://YOUR_GITHUB_USERNAME.github.io/tg-fitness-bot/
+```

@@ -24,6 +24,7 @@ class Config:
     sheet_gid_macros: str | None
     sheet_gid_cycle: str | None
     admin_ids: set[int]
+    miniapp_url: str | None
 
 
 def load_config() -> Config:
@@ -46,6 +47,7 @@ def load_config() -> Config:
     sheet_gid_cycle = os.getenv("SHEET_GID_CYCLE")
 
     admin_ids = parse_admin_ids(os.getenv("ADMIN_IDS"))
+    miniapp_url = os.getenv("MINIAPP_URL")
 
     return Config(
         bot_token=bot_token,
@@ -58,4 +60,5 @@ def load_config() -> Config:
         sheet_gid_macros=sheet_gid_macros,
         sheet_gid_cycle=sheet_gid_cycle,
         admin_ids=admin_ids,
+        miniapp_url=miniapp_url,
     )
