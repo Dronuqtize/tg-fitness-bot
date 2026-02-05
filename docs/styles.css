@@ -41,6 +41,34 @@ body {
   opacity: 0.85;
 }
 
+.status.error {
+  color: #ffb4b4;
+}
+
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin: 12px 0 16px;
+}
+
+.tab {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.tab.active {
+  background: #1f6feb;
+  color: #fff;
+  border-color: #1f6feb;
+}
+
+.hidden {
+  display: none;
+}
+
 .card {
   background: var(--card);
   border-radius: 16px;

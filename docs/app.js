@@ -1,6 +1,6 @@
 const tg = window.Telegram?.WebApp;
 const initData = tg?.initData || "";
-const API_BASE = window.APP_CONFIG?.API_BASE || "";
+const API_BASE = (window.APP_CONFIG?.API_BASE || "").trim();
 
 const byId = (id) => document.getElementById(id);
 
@@ -9,12 +9,16 @@ const state = {
   progress: [],
 };
 
-function setStatus(text) {
-  byId("status").textContent = text;
+function setStatus(text, isError = false) {
+  const el = byId("status");
+  el.textContent = text;
+  el.classList.toggle("error", isError);
 }
 
 async function api(path, opts = {}) {
-  if (!API_BASE) throw new Error("API_BASE not set");
+  if (!API_BASE || API_BASE.includes("YOUR-RENDER-API")) {
+    throw new Error("API_BASE не настроен");
+  }
   const res = await fetch(`${API_BASE}${path}` , {
     ...opts,
     headers: {
@@ -108,21 +112,44 @@ byId("add-progress").addEventListener("click", async () => {
   const biceps = Number(byId("p-biceps").value);
   const chest = Number(byId("p-chest").value);
 
-  await api("/api/progress", {
-    method: "POST",
-    body: JSON.stringify({ weight, waist, belly, biceps, chest })
-  });
-  await loadProgress();
+  try {
+    await api("/api/progress", {
+      method: "POST",
+      body: JSON.stringify({ weight, waist, belly, biceps, chest })
+    });
+    await loadProgress();
+    setStatus("Прогресс сохранен");
+  } catch (err) {
+    setStatus(err.message || "Ошибка сохранения", true);
+  }
 });
+
+function setupTabs() {
+  document.querySelectorAll(".tab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const target = btn.getAttribute("data-tab");
+      document.querySelectorAll(".view").forEach(v => {
+        v.classList.toggle("hidden", v.getAttribute("data-view") !== target);
+      });
+    });
+  });
+}
 
 async function init() {
   if (!tg) {
-    setStatus("Открой в Telegram Mini App");
+    setStatus("Открой в Telegram Mini App", true);
     return;
   }
   tg.expand();
-  await loadToday();
-  await loadProgress();
+  setupTabs();
+  try {
+    await loadToday();
+    await loadProgress();
+  } catch (err) {
+    setStatus(err.message || "Ошибка загрузки", true);
+  }
 }
 
 init().catch(err => setStatus(err.message));
