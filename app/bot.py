@@ -55,6 +55,10 @@ class ProgressionState(StatesGroup):
     waiting = State()
 
 
+class ProgressEditState(StatesGroup):
+    waiting = State()
+
+
 @dataclass
 class DayPlan:
     date: date
@@ -216,11 +220,11 @@ def _day_message(plan: dict[str, Any], day: DayPlan) -> str:
     if day.day_type == "train":
         title = get_workout_title(plan, day.workout_key or "")
         return (
-            f"Сегодня тренировка: {title}\n"
+            f"✅ Сегодня тренировка: {title}\n"
             f"КБЖУ: {day.macros['kcal']} ккал, Б {day.macros['protein']}, Ж {day.macros['fat']}, У {day.macros['carbs']}"
         )
     return (
-        f"Сегодня отдых\n"
+        f"🟡 Сегодня отдых\n"
         f"КБЖУ: {day.macros['kcal']} ккал, Б {day.macros['protein']}, Ж {day.macros['fat']}, У {day.macros['carbs']}"
     )
 
@@ -267,6 +271,7 @@ def _day_keyboard(day: DayPlan) -> InlineKeyboardBuilder:
     kb.button(text="Календарь", callback_data="calendar")
     kb.button(text="Совет дня", callback_data="advice")
     kb.button(text="Mini App", callback_data="miniapp")
+    kb.button(text="Меню", callback_data="menu:main")
     kb.adjust(2, 2, 2, 2)
     return kb
 
@@ -672,7 +677,11 @@ async def finish_day(call: CallbackQuery, state: FSMContext) -> None:
         )
     conn.commit()
 
-    await call.message.answer("Короткий комментарий по дню?")
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Пропустить комментарий", callback_data="comment:skip")
+    kb.button(text="Добавить прогресс", callback_data="progress:add")
+    kb.adjust(1, 1)
+    await call.message.answer("Короткий комментарий по дню?", reply_markup=kb.as_markup())
     await state.set_state(CommentState.waiting)
     await call.answer()
 
@@ -687,10 +696,103 @@ async def progress_add(call: CallbackQuery, state: FSMContext) -> None:
     await call.answer()
 
 
+@router.callback_query(F.data.startswith("progress:edit:"))
+async def progress_edit_latest(call: CallbackQuery, state: FSMContext) -> None:
+    cfg = load_config()
+    conn = get_conn(cfg.db_dsn)
+    init_db(conn)
+    user_id = get_or_create_user(
+        conn,
+        call.from_user.id,
+        call.from_user.full_name,
+        cfg.timezone,
+        chat_id=call.message.chat.id if call.message else None,
+    )
+    cur = conn.execute(
+        "SELECT id, date, weight, waist, belly, biceps, chest FROM progress_logs "
+        "WHERE user_id=? ORDER BY date DESC LIMIT 1",
+        (user_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        await call.message.answer("Нет данных для редактирования.")
+        await call.answer()
+        return
+    await state.update_data(progress_id=row["id"])
+    await call.message.answer(
+        "Введи новые значения одной строкой: вес, талия, живот, бицепс, грудь.\n"
+        f"Текущие: {row['weight']}, {row['waist']}, {row['belly']}, {row['biceps']}, {row['chest']}"
+    )
+    await state.set_state(ProgressEditState.waiting)
+    await call.answer()
+
+
+@router.message(ProgressEditState.waiting)
+async def progress_edit_save(message: Message, state: FSMContext) -> None:
+    cfg = load_config()
+    conn = get_conn(cfg.db_dsn)
+    init_db(conn)
+    user_id = get_or_create_user(
+        conn,
+        message.from_user.id,
+        message.from_user.full_name,
+        cfg.timezone,
+        chat_id=message.chat.id,
+    )
+    data = await state.get_data()
+    progress_id = data.get("progress_id")
+    if not progress_id:
+        await message.answer("Не удалось найти запись.")
+        await state.clear()
+        return
+
+    parts = [p.strip() for p in message.text.replace(";", ",").split(",") if p.strip()]
+    if len(parts) < 5:
+        await message.answer("Нужно 5 чисел: вес, талия, живот, бицепс, грудь")
+        return
+
+    try:
+        weight, waist, belly, biceps, chest = map(float, parts[:5])
+    except ValueError:
+        await message.answer("Похоже, есть нечисловые значения. Попробуй еще раз.")
+        return
+
+    conn.execute(
+        "UPDATE progress_logs SET weight=?, waist=?, belly=?, biceps=?, chest=? WHERE user_id=? AND id=?",
+        (weight, waist, belly, biceps, chest, user_id, progress_id),
+    )
+    conn.commit()
+    await message.answer("Запись обновлена.", reply_markup=_main_menu_kb().as_markup())
+    await state.clear()
+
+
 @router.callback_query(F.data == "comment:today")
 async def add_comment_today(call: CallbackQuery, state: FSMContext) -> None:
     await call.message.answer("Напиши короткий комментарий по сегодняшнему дню.")
     await state.set_state(CommentState.waiting)
+    await call.answer()
+
+
+@router.callback_query(F.data == "comment:skip")
+async def skip_comment(call: CallbackQuery, state: FSMContext) -> None:
+    cfg = load_config()
+    conn = get_conn(cfg.db_dsn)
+    init_db(conn)
+    user_id = get_or_create_user(
+        conn,
+        call.from_user.id,
+        call.from_user.full_name,
+        cfg.timezone,
+        chat_id=call.message.chat.id if call.message else None,
+    )
+    today_date = _get_today(cfg.timezone)
+    conn.execute(
+        "UPDATE calendar_days SET note=?, updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND date=?",
+        ("-", user_id, today_date.isoformat()),
+    )
+    conn.commit()
+    await call.message.answer("Ок, без комментария.", reply_markup=_main_menu_kb().as_markup())
+    await state.clear()
     await call.answer()
 
 @router.message(CommentState.waiting)
@@ -784,7 +886,11 @@ async def save_progress(message: Message, state: FSMContext) -> None:
         (user_id, _get_today(cfg.timezone).isoformat(), weight, waist, belly, biceps, chest),
     )
     conn.commit()
-    await message.answer("Прогресс записан.", reply_markup=_main_menu_kb().as_markup())
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Редактировать последний", callback_data=f"progress:edit:{message.from_user.id}")
+    kb.button(text="Меню", callback_data="menu:main")
+    kb.adjust(2)
+    await message.answer("Прогресс записан.", reply_markup=kb.as_markup())
     await state.clear()
 
 
@@ -1716,6 +1822,7 @@ def _main_menu_kb() -> InlineKeyboardBuilder:
     kb.button(text="Совет", callback_data="menu:advice")
     kb.button(text="PDF отчет", callback_data="menu:pdf")
     kb.button(text="Mini App", callback_data="miniapp")
+    kb.button(text="Добавить прогресс", callback_data="progress:add")
     kb.adjust(2, 2, 2, 2)
     return kb
 
