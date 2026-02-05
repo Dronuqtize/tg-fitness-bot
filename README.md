@@ -166,3 +166,8 @@ ADMIN_IDS=123456789
 ```
 MINIAPP_URL=https://YOUR_GITHUB_USERNAME.github.io/tg-fitness-bot/
 ```
+
+Mini App использует API. Укажи в `docs/index.html`:
+```
+API_BASE=https://YOUR-RENDER-API.onrender.com
+```

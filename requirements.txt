@@ -8,3 +8,5 @@ matplotlib==3.9.2
 psycopg[binary]==3.3.2
 requests==2.32.3
 reportlab==4.2.2
+fastapi==0.111.1
+uvicorn==0.30.1

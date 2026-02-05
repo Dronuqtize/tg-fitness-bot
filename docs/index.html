@@ -5,53 +5,63 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fitness Bot Mini App</title>
   <link rel="stylesheet" href="styles.css" />
+  <script>
+    window.APP_CONFIG = {
+      API_BASE: "https://YOUR-RENDER-API.onrender.com"
+    };
+  </script>
 </head>
 <body>
   <main class="page">
     <header class="hero">
-      <h1>Fitness Bot</h1>
-      <p>Быстрый старт и команды. Открывай внутри Telegram.</p>
+      <h1>Личный кабинет</h1>
+      <p>Тренировки, КБЖУ и прогресс в одном месте.</p>
+      <div id="status" class="status">Загрузка…</div>
     </header>
 
     <section class="card">
-      <h2>Запуск</h2>
-      <ol>
-        <li>Открой чат с ботом</li>
-        <li>Нажми кнопку <b>Mini App</b></li>
-        <li>Проверь команды и примеры</li>
-      </ol>
+      <h2 id="today-title">Сегодня</h2>
+      <p id="today-macros"></p>
+      <div id="workout-box" class="workout"></div>
     </section>
 
     <section class="card">
-      <h2>Основные команды</h2>
-      <ul>
-        <li><code>/today</code> — план на сегодня</li>
-        <li><code>/progress</code> — вес и обмеры</li>
-        <li><code>/calendar</code> — календарь</li>
-        <li><code>/attendance</code> — табель</li>
-        <li><code>/chart</code> — график</li>
-        <li><code>/advice</code> — ИИ‑совет</li>
-        <li><code>/pdf</code> — PDF отчёт</li>
-      </ul>
+      <h2>Добавить прогресс</h2>
+      <div class="grid">
+        <input id="p-weight" type="number" step="0.1" placeholder="Вес" />
+        <input id="p-waist" type="number" step="0.1" placeholder="Талия" />
+        <input id="p-belly" type="number" step="0.1" placeholder="Живот" />
+        <input id="p-biceps" type="number" step="0.1" placeholder="Бицепс" />
+        <input id="p-chest" type="number" step="0.1" placeholder="Грудь" />
+        <button id="add-progress" class="btn">Сохранить</button>
+      </div>
     </section>
 
     <section class="card">
-      <h2>Напоминания</h2>
-      <p>Примеры:</p>
-      <pre><code>/reminder set water 10:00
-/reminder set ai 21:00
-/reminder off water</code></pre>
-    </section>
-
-    <section class="card">
-      <h2>Синхронизация плана</h2>
-      <pre><code>/syncplan 1WklhgtlmeqZKXg-juWAcUJJYCSF5j4ct6Y0v8GamFkw 0 788353623 219051749
-/syncplan apply</code></pre>
+      <h2>История прогресса (редактируемая)</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Дата</th>
+              <th>Вес</th>
+              <th>Талия</th>
+              <th>Живот</th>
+              <th>Бицепс</th>
+              <th>Грудь</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="progress-body"></tbody>
+        </table>
+      </div>
     </section>
 
     <footer class="footer">
-      <span>Если есть вопросы — пиши в чат бота.</span>
+      <span>Открывай через Telegram Mini App.</span>
     </footer>
   </main>
+
+  <script src="app.js"></script>
 </body>
 </html>
