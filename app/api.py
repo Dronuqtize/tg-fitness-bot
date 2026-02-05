@@ -11,11 +11,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.config import load_config
-from app.db import get_conn, init_db, get_or_create_user, get_settings, update_settings
+from app.db import get_conn, init_db, get_or_create_user, get_settings
 from app.workouts import load_plan, get_cycle_order, get_macros, get_workout, get_workout_title
 
 
 app = FastAPI(title="Fitness Bot API")
+
+origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+if origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 def _parse_init_data(init_data: str) -> dict[str, str]:
@@ -49,7 +59,6 @@ def _get_user_from_init(init_data: str) -> tuple[int, str | None]:
     user_raw = data.get("user")
     if not user_raw:
         raise HTTPException(status_code=401, detail="Missing user")
-    # user is URL-encoded JSON
     try:
         import urllib.parse
         import json
@@ -166,17 +175,6 @@ def on_startup() -> None:
     cfg = load_config()
     conn = get_conn(cfg.db_dsn)
     init_db(conn)
-
-    origins = os.getenv("CORS_ORIGINS", "").split(",")
-    origins = [o.strip() for o in origins if o.strip()]
-    if origins:
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=origins,
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
 
 
 @app.get("/api/health")
