@@ -259,11 +259,11 @@ def _day_keyboard(day: DayPlan) -> InlineKeyboardBuilder:
         kb.button(text="Легкая", callback_data="level:easy")
         kb.button(text="Средняя", callback_data="level:medium")
         kb.button(text="Сложная", callback_data="level:hard")
-        kb.button(text="ДОБАВИТЬ ПРОГРЕССИЮ", callback_data="progression")
         kb.button(text="ЗАВЕРШИЛ ТРЕНИРОВКУ", callback_data="done:train")
         kb.button(text="Пропустил день", callback_data="skip:today")
         kb.button(text="Добавить прогресс", callback_data="progress:add")
         kb.button(text="Комментарий", callback_data="comment:today")
+        kb.button(text="ДОБАВИТЬ ПРОГРЕССИЮ", callback_data="progression")
     else:
         kb.button(text="ОТДЫХАЛ", callback_data="done:rest")
         kb.button(text="Пропустил день", callback_data="skip:today")
@@ -718,7 +718,7 @@ async def progress_add(call: CallbackQuery, state: FSMContext) -> None:
     await call.answer()
 
 
-@router.callback_query(F.data.startswith("progress:edit:"))
+@router.callback_query(F.data == "progress:edit")
 async def progress_edit_latest(call: CallbackQuery, state: FSMContext) -> None:
     cfg = load_config()
     conn = get_conn(cfg.db_dsn)
@@ -836,7 +836,12 @@ async def save_comment(message: Message, state: FSMContext) -> None:
         (message.text.strip(), user_id, today_date.isoformat()),
     )
     conn.commit()
-    await message.answer("Записал комментарий.", reply_markup=_main_menu_kb().as_markup())
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Добавить прогресс", callback_data="progress:add")
+    kb.button(text="Редактировать последний", callback_data="progress:edit")
+    kb.button(text="Меню", callback_data="menu:main")
+    kb.adjust(2, 1)
+    await message.answer("Записал комментарий.", reply_markup=kb.as_markup())
     await state.clear()
 
 
@@ -909,9 +914,10 @@ async def save_progress(message: Message, state: FSMContext) -> None:
     )
     conn.commit()
     kb = InlineKeyboardBuilder()
-    kb.button(text="Редактировать последний", callback_data=f"progress:edit:{message.from_user.id}")
+    kb.button(text="Редактировать последний", callback_data="progress:edit")
+    kb.button(text="Добавить еще", callback_data="progress:add")
     kb.button(text="Меню", callback_data="menu:main")
-    kb.adjust(2)
+    kb.adjust(2, 1)
     await message.answer("Прогресс записан.", reply_markup=kb.as_markup())
     await state.clear()
 
@@ -1306,6 +1312,19 @@ async def menu_cmd(message: Message) -> None:
     await message.answer("Главное меню:", reply_markup=_main_menu_kb().as_markup())
 
 
+@router.message(Command("help"))
+async def help_cmd(message: Message) -> None:
+    text = (
+        "Быстрый старт:\n"
+        "1) Нажми «Сегодня»\n"
+        "2) Отметь тренировку или отдых\n"
+        "3) Добавь прогресс и комментарий\n\n"
+        "Основные команды:\n"
+        "/today, /progress, /calendar, /attendance, /chart, /pdf, /menu"
+    )
+    await message.answer(text, reply_markup=_main_menu_kb().as_markup())
+
+
 @router.message(Command("attendance"))
 async def attendance(message: Message) -> None:
     cfg = load_config()
@@ -1599,36 +1618,7 @@ def _store_advice(conn, user_id: int, day: date, advice_text: str) -> None:
 
 @router.message(Command("advice"))
 async def advice(message: Message) -> None:
-    cfg = load_config()
-    conn = get_conn(cfg.db_dsn)
-    init_db(conn)
-    user_id = get_or_create_user(
-        conn,
-        message.from_user.id,
-        message.from_user.full_name,
-        cfg.timezone,
-        chat_id=message.chat.id,
-    )
-    settings = get_settings(conn, user_id)
-
-    if not settings.get("ai_enabled", 1):
-        await message.answer("ИИ‑советы выключены в настройках.")
-        return
-    if not cfg.openai_api_key:
-        await message.answer("Нет OPENAI_API_KEY в .env, советы пока недоступны.")
-        return
-
-    context = _build_ai_context(conn, user_id)
-    await message.answer("Секунду, генерирую совет...")
-    try:
-        advice_text = generate_advice(cfg.openai_api_key, context)
-    except Exception as exc:
-        update_settings(conn, user_id, ai_enabled=0)
-        await message.answer(f"ИИ‑советы выключены: {exc}")
-        return
-
-    _store_advice(conn, user_id, _get_today(cfg.timezone), advice_text)
-    await message.answer(advice_text)
+    await message.answer("ИИ‑советы отключены.", reply_markup=_main_menu_kb().as_markup())
 
 
 @router.callback_query(F.data == "advice")
@@ -1641,30 +1631,7 @@ async def advice_button(call: CallbackQuery) -> None:
 
 @router.message(Command("ai"))
 async def ai_toggle(message: Message) -> None:
-    cfg = load_config()
-    conn = get_conn(cfg.db_dsn)
-    init_db(conn)
-    user_id = get_or_create_user(
-        conn,
-        message.from_user.id,
-        message.from_user.full_name,
-        cfg.timezone,
-        chat_id=message.chat.id,
-    )
-    settings = get_settings(conn, user_id)
-
-    text = message.text.strip().lower()
-    if "on" in text or "вкл" in text:
-        update_settings(conn, user_id, ai_enabled=1)
-        await message.answer("ИИ‑советы включены.")
-        return
-    if "off" in text or "выкл" in text:
-        update_settings(conn, user_id, ai_enabled=0)
-        await message.answer("ИИ‑советы выключены.")
-        return
-
-    status = "включены" if settings.get("ai_enabled", 1) else "выключены"
-    await message.answer(f"Сейчас советы {status}. Команда: /ai on или /ai off")
+    await message.answer("ИИ‑советы отключены.", reply_markup=_main_menu_kb().as_markup())
 
 
 @router.message(Command("startdate"))
